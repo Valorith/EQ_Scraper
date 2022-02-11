@@ -22,7 +22,7 @@ func scrape(searchURL, serviceName string) {
 
 }
 
-func scrapePageData(doc *goquery.Document, serviceName string) {
+func scrapePageData(doc *goquery.Document, serviceName string) string {
 	if serviceName == "ebay" {
 		doc.Find("ul.srp-results>li.s-item").Each(func(i int, s *goquery.Selection) {
 			title := s.Find("a.s-item__link").Text()
@@ -31,12 +31,24 @@ func scrapePageData(doc *goquery.Document, serviceName string) {
 			fmt.Println(price)
 		})
 	} else if serviceName == "alla items" {
+		returnItemID := ""
 		fmt.Println("HTML Title: ", doc.Find("title").Text())
-		doc.Find("table.display_table").Each(func(i int, s *goquery.Selection) {
-			itemName := s.Find("td.sorting_1").Text()
-			fmt.Println("Item Name: ", itemName)
+		fmt.Println("TEST: ", doc.Find("table.display_table.tbody").Text())
+		doc.Find("table.display_table").Find("tr").Each(func(i int, selection *goquery.Selection) {
+			//itemName := selection.Find("td.sorting_1").Text()
+			itemName := selection.Find("a").Text()
+			itemID := selection.Find("a").AttrOr("id", "")
+			if i == 21 {
+				returnItemID = selection.Find("a").AttrOr("id", "")
+			}
+			if itemName != "" && i >= 21 && i <= 26 {
+				fmt.Printf("Item Name: %s\n", itemName)
+				fmt.Printf("Item ID: %s\n", itemID)
+			}
 		})
+		return returnItemID
 	}
+	return ""
 }
 
 func getHTML(url string) *http.Response {
