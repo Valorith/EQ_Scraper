@@ -183,8 +183,6 @@ func (webScraper *Scraper) Scrape() {
 	} else if webScraper.continuous {
 		fmt.Println("Continuous Scraping Enabled: Initiailizing Scrape Timer...")
 		ticker := time.NewTicker(time.Duration(webScraper.timerMinutes) * time.Minute)
-		// for every `tick` that our `ticker`
-		// emits, we print `tock`
 		for t := range ticker.C {
 			if webScraper.continuous {
 				fmt.Printf("Scrape: %d\n", t)
