@@ -164,8 +164,6 @@ func (webScraper *Scraper) Scrape() {
 		fmt.Printf("Timer Enabled: Initiailizing Scrape Timer at %d minute interval for %d minutes\n", webScraper.timerMinutes, webScraper.timerMinutesDuration)
 		ticker := time.NewTicker(time.Duration(webScraper.timerMinutes) * time.Minute)
 		minutesElapsed := 0
-		// for every `tick` that our `ticker`
-		// emits, we print `tock`
 		if minutesElapsed <= webScraper.timerMinutesDuration {
 			minutesElapsed++
 			for t := range ticker.C {
