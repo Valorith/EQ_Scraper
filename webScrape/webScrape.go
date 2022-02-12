@@ -10,7 +10,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func scrape(searchURL, serviceName string) {
+func scrape(searchURL, serviceName string, webScraper Scraper) {
+	fmt.Println("Collecting Initial HTML doc")
 	html := getHTML(searchURL)
 	defer html.Body.Close()
 	doc, error := goquery.NewDocumentFromReader(html.Body)
@@ -18,20 +19,25 @@ func scrape(searchURL, serviceName string) {
 	if error != nil {
 		fmt.Println(error)
 	}
+	if serviceName == "alla items" {
+		itemID, itemName := getItemIDandNameByItemSearchDoc(doc)
+		itemAttributes := getItemInfoByItemSearchDoc(itemID)
+		webScraper.results = append(webScraper.results, itemName)
+		webScraper.results = append(webScraper.results, string(rune(itemID)))
+		fmt.Printf("Detected Item Name: %s\n", itemName)
+		fmt.Printf("Detected Item ID: %d\n", itemID)
 
-	itemID, itemName := getItemIDandNameByItemSearchDoc(doc)
-	itemAttributes := getItemInfoByItemSearchDoc(itemID)
-	fmt.Printf("Item Name: %s\n", itemName)
-	fmt.Printf("Item ID: %d\n", itemID)
-	for i, attribute := range itemAttributes {
-		fmt.Printf("Attribute %d: %s\n", i, attribute)
+		for i, attribute := range itemAttributes {
+			fmt.Printf("Detected Attribute %d: %s\n", i+1, attribute)
+			webScraper.results = append(webScraper.results, attribute)
+		}
 	}
 }
 
 func getItemInfoByItemSearchDoc(itemID int) []string {
 	attributes := []string{}
 	//effects := []string{}
-
+	fmt.Println("Scraping for Item Attributes....")
 	itemSearchString := "https://alla.clumsysworld.com/?a=item&id=" + strconv.Itoa(itemID)
 
 	html := getHTML(itemSearchString)
@@ -68,30 +74,19 @@ func getItemInfoByItemSearchDoc(itemID int) []string {
 			}
 
 		}
-
-		// Retrieve item effects
-		selection.Find("td").Find("tr").Each(func(subi int, subSelection *goquery.Selection) {
-			//effects = append(attributes, subSelection.Text())
-
-			//if subi == 29 {
-			//combinedString := subSelection.Text()
-			//endIndex := strings.Index(combinedString, "Level for effect")
-			//effect := combinedString[0:endIndex]
-			//levelReq := combinedString[endIndex:]
-			//attributes = append(attributes, effect)
-			//attributes = append(attributes, levelReq)
-			//fmt.Println("Effect: ", effect)
-			//fmt.Println("Level: ", levelReq)
-
-			// Create}
-		})
 	})
+	if len(attributes) >= 1 {
+		fmt.Println("Scrape Succesful")
+	} else {
+		fmt.Println("Scrape Failed")
+	}
 	return attributes
 }
 
 func getItemIDandNameByItemSearchDoc(doc *goquery.Document) (int, string) {
 	returnItemID := ""
 	returnItemName := ""
+	fmt.Println("Scraping for Item Name/ID....")
 	doc.Find("table.display_table").Find("tr").Each(func(i int, selection *goquery.Selection) {
 		//itemName := selection.Find("td.sorting_1").Text()
 		itemName := selection.Find("a").Text()
@@ -103,7 +98,11 @@ func getItemIDandNameByItemSearchDoc(doc *goquery.Document) (int, string) {
 	})
 
 	convertedItemID, _ := strconv.Atoi(returnItemID)
-
+	if convertedItemID > 0 && returnItemName != "" {
+		fmt.Println("Scrape Succesful")
+	} else {
+		fmt.Println("Scrape Failed")
+	}
 	return convertedItemID, returnItemName
 }
 
@@ -121,28 +120,28 @@ func formatSearchURL(searchTerm, searchService string) string {
 	if searchService == "alla itemID" { // Search by Item ID
 		baseURL := "https://alla.clumsysworld.com/?a=item&id="
 		searchTerm = strings.Replace(searchTerm, " ", "%20", -1)
-		fmt.Println("Search URL: " + baseURL + searchTerm)
+		//fmt.Println("Search URL: " + baseURL + searchTerm)
 		return baseURL + searchTerm
 	} else if searchService == "alla spellID" { // Search by Spell ID
 		baseURL := "https://alla.clumsysworld.com/?a=spell&id="
 		searchTerm = strings.Replace(searchTerm, " ", "%20", -1)
-		fmt.Println("Search URL: " + baseURL + searchTerm)
+		//fmt.Println("Search URL: " + baseURL + searchTerm)
 		return baseURL + searchTerm
 	} else if searchService == "alla npcID" { // Search by NPC ID
 		baseURL := "https://alla.clumsysworld.com/?a=npc&id="
 		searchTerm = strings.Replace(searchTerm, " ", "%20", -1)
-		fmt.Println("Search URL: " + baseURL + searchTerm)
+		//fmt.Println("Search URL: " + baseURL + searchTerm)
 		return baseURL + searchTerm
 	} else if searchService == "alla items" { // Search items by name
 		baseURL := "https://alla.clumsysworld.com/?a=items_search&&a=items&iname="
 		searchTerm = strings.Replace(searchTerm, " ", "%20", -1)
 		alla_url := baseURL + searchTerm + "&iclass=0&irace=0&islot=0&istat1=&istat1comp=%3E%3D&istat1value=&istat2=&istat2comp=%3E%3D&istat2value=&iresists=&iresistscomp=%3E%3D&iresistsvalue=&iheroics=&iheroicscomp=%3E%3D&iheroicsvalue=&imod=&imodcomp=%3E%3D&imodvalue=&itype=-1&iaugslot=0&ieffect=&iminlevel=0&ireqlevel=0&inodrop=0&iavailability=0&iavaillevel=0&ideity=0&isearch=1"
-		fmt.Println("Search URL: " + alla_url)
+		//fmt.Println("Search URL: " + alla_url)
 		return alla_url
 	} else if searchService == "alla spells" { // Search spells by name
 		baseURL := "https://alla.clumsysworld.com/?a=spells&name="
 		searchTerm = strings.Replace(searchTerm, " ", "%20", -1)
-		fmt.Println("Search URL: " + baseURL + searchTerm)
+		//fmt.Println("Search URL: " + baseURL + searchTerm)
 		return baseURL + searchTerm
 	}
 
@@ -157,6 +156,7 @@ type Scraper struct {
 	timerMinutesDuration int
 	timerEnabled         bool
 	continuous           bool
+	results              []string
 }
 
 func (webScraper *Scraper) Scrape() {
@@ -203,8 +203,7 @@ func (webScraper *Scraper) Scrape() {
 }
 
 func scrapeURL(webScraper *Scraper) {
-	fmt.Println("Scraping: " + webScraper.url)
-	scrape(webScraper.url, webScraper.searchService)
+	scrape(webScraper.url, webScraper.searchService, *webScraper)
 }
 
 func (webScraper *Scraper) SetUrl(searchTerm, searchService string) {
