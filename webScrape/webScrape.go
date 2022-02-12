@@ -3,6 +3,7 @@ package webScrape
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,37 +19,55 @@ func scrape(searchURL, serviceName string) {
 		fmt.Println(error)
 	}
 
-	scrapePageData(doc, serviceName)
-
+	itemID, itemName := getItemIDandNameByItemSearchDoc(doc)
+	itemAttributes := getItemInfoByItemSearchDoc(itemID)
+	fmt.Printf("Item Name: %s\n", itemName)
+	fmt.Printf("Item ID: %d\n", itemID)
+	for i, attribute := range itemAttributes {
+		fmt.Printf("Attribute %d: %s\n", i, attribute)
+	}
 }
 
-func scrapePageData(doc *goquery.Document, serviceName string) string {
-	if serviceName == "ebay" {
-		doc.Find("ul.srp-results>li.s-item").Each(func(i int, s *goquery.Selection) {
-			title := s.Find("a.s-item__link").Text()
-			price := s.Find("span.s-item__price").Text()
-			fmt.Println(title)
-			fmt.Println(price)
-		})
-	} else if serviceName == "alla items" {
-		returnItemID := ""
-		fmt.Println("HTML Title: ", doc.Find("title").Text())
-		fmt.Println("TEST: ", doc.Find("table.display_table.tbody").Text())
-		doc.Find("table.display_table").Find("tr").Each(func(i int, selection *goquery.Selection) {
-			//itemName := selection.Find("td.sorting_1").Text()
-			itemName := selection.Find("a").Text()
-			itemID := selection.Find("a").AttrOr("id", "")
-			if i == 21 {
-				returnItemID = selection.Find("a").AttrOr("id", "")
-			}
-			if itemName != "" && i >= 21 && i <= 26 {
-				fmt.Printf("Item Name: %s\n", itemName)
-				fmt.Printf("Item ID: %s\n", itemID)
-			}
-		})
-		return returnItemID
+func getItemInfoByItemSearchDoc(itemID int) []string {
+	attributes := []string{}
+
+	itemSearchString := "https://alla.clumsysworld.com/?a=item&id=" + strconv.Itoa(itemID)
+
+	html := getHTML(itemSearchString)
+	defer html.Body.Close()
+	itemDoc, err := goquery.NewDocumentFromReader(html.Body)
+
+	if err != nil {
+		fmt.Println(err)
 	}
-	return ""
+
+	itemDoc.Find("table.container_div").Each(func(i int, selection *goquery.Selection) {
+		selection.Find("td").Find("td").Find("tr").Each(func(subi int, subSelection *goquery.Selection) {
+			if subSelection.Text() != "" && subSelection.Text() != " " && subi != 12 && subi != 13 && subi != 4 {
+				attributes = append(attributes, subSelection.Text())
+			}
+		})
+	})
+	return attributes
+}
+
+func getItemIDandNameByItemSearchDoc(doc *goquery.Document) (int, string) {
+	returnItemID := ""
+	returnItemName := ""
+	fmt.Println("HTML Title: ", doc.Find("title").Text())
+	doc.Find("table.display_table").Find("tr").Each(func(i int, selection *goquery.Selection) {
+		//itemName := selection.Find("td.sorting_1").Text()
+		itemName := selection.Find("a").Text()
+		itemID := selection.Find("a").AttrOr("id", "")
+		if i == 21 {
+			returnItemID = itemID
+			returnItemName = itemName
+		}
+	})
+
+	convertedItemID, _ := strconv.Atoi(returnItemID)
+
+	return convertedItemID, returnItemName
 }
 
 func getHTML(url string) *http.Response {
