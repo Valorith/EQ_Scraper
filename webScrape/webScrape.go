@@ -30,6 +30,7 @@ func scrape(searchURL, serviceName string) {
 
 func getItemInfoByItemSearchDoc(itemID int) []string {
 	attributes := []string{}
+	//effects := []string{}
 
 	itemSearchString := "https://alla.clumsysworld.com/?a=item&id=" + strconv.Itoa(itemID)
 
@@ -40,12 +41,49 @@ func getItemInfoByItemSearchDoc(itemID int) []string {
 	if err != nil {
 		fmt.Println(err)
 	}
+	var selection *goquery.Selection
+	itemDoc.Find("table.container_div").Find("table").Each(func(index int, subSelection *goquery.Selection) {
+		//fmt.Printf("Table # %d: %s\n", index+1, subSelection.Text())
+		if index == 1 {
+			selection = subSelection
+			//fmt.Println("Setting Fultered Seletion: ", selection.Text())
+		}
+	})
 
-	itemDoc.Find("table.container_div").Each(func(i int, selection *goquery.Selection) {
-		selection.Find("td").Find("td").Find("tr").Each(func(subi int, subSelection *goquery.Selection) {
-			if subSelection.Text() != "" && subSelection.Text() != " " && subi != 12 && subi != 13 && subi != 4 {
-				attributes = append(attributes, subSelection.Text())
+	// Retireve item attributes
+	selection.Find("tr").Each(func(subi int, subSelection *goquery.Selection) {
+		attributeText := strings.TrimSpace(subSelection.Text())
+		if attributeText != "" && attributeText != " " && !strings.Contains(attributeText, "Slot") && (strings.Count(attributeText, ":") == 1 || strings.Count(attributeText, "Level for effect:") == 1) {
+			if strings.Contains(attributeText, "Level for effect:") {
+				levelIndex := strings.Index(attributeText, "Level for effect:")
+				effectString := string(attributeText[0:levelIndex])
+				levelString := string(attributeText[levelIndex:])
+				//fmt.Println("Adding Attribute: ", effectString)
+				attributes = append(attributes, effectString)
+				//fmt.Println("Adding Attribute: ", levelString)
+				attributes = append(attributes, levelString)
+			} else {
+				//fmt.Println("Adding Attribute: ", attributeText)
+				attributes = append(attributes, attributeText)
 			}
+
+		}
+
+		// Retrieve item effects
+		selection.Find("td").Find("tr").Each(func(subi int, subSelection *goquery.Selection) {
+			//effects = append(attributes, subSelection.Text())
+
+			//if subi == 29 {
+			//combinedString := subSelection.Text()
+			//endIndex := strings.Index(combinedString, "Level for effect")
+			//effect := combinedString[0:endIndex]
+			//levelReq := combinedString[endIndex:]
+			//attributes = append(attributes, effect)
+			//attributes = append(attributes, levelReq)
+			//fmt.Println("Effect: ", effect)
+			//fmt.Println("Level: ", levelReq)
+
+			// Create}
 		})
 	})
 	return attributes
@@ -54,7 +92,6 @@ func getItemInfoByItemSearchDoc(itemID int) []string {
 func getItemIDandNameByItemSearchDoc(doc *goquery.Document) (int, string) {
 	returnItemID := ""
 	returnItemName := ""
-	fmt.Println("HTML Title: ", doc.Find("title").Text())
 	doc.Find("table.display_table").Find("tr").Each(func(i int, selection *goquery.Selection) {
 		//itemName := selection.Find("td.sorting_1").Text()
 		itemName := selection.Find("a").Text()
