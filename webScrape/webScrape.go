@@ -81,12 +81,7 @@ func getHTML(url string) *http.Response {
 }
 
 func formatSearchURL(searchTerm, searchService string) string {
-	if searchService == "ebay" {
-		baseURL := "https://www.ebay.com/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw="
-		searchTerm = strings.Replace(searchTerm, " ", "+", -1)
-		fmt.Println("Search URL: " + baseURL + searchTerm)
-		return baseURL + searchTerm
-	} else if searchService == "alla itemID" { // Search by Item ID
+	if searchService == "alla itemID" { // Search by Item ID
 		baseURL := "https://alla.clumsysworld.com/?a=item&id="
 		searchTerm = strings.Replace(searchTerm, " ", "%20", -1)
 		fmt.Println("Search URL: " + baseURL + searchTerm)
